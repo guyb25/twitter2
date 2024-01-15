@@ -1,18 +1,25 @@
 import { Injectable } from '@nestjs/common';
-import { SessionService } from 'src/data/session/session.service';
 import { LoginDto } from 'src/models/dtos/auth/login.dto';
-import { AccountValidationService } from 'src/validation/account-validation/account-validation.service';
+import { AuthValidationService } from 'src/providers/validation/auth-validation.service';
+import { randomUUID } from 'crypto';
+import { AuthSession } from 'src/models/session/auth-session';
 
 @Injectable()
 export class AuthService {
-    constructor(
-        private readonly sessionService: SessionService, 
-        private readonly validationService: AccountValidationService) {}
+    constructor(private readonly validationService: AuthValidationService) {}
 
-    async login(dto: LoginDto) {
-        let account = await this.validationService.validateLogin(dto.username, dto.password)
-        this.sessionService.createSession(account.id)
+    async login(dto: LoginDto, session: AuthSession) {
+        await this.validationService.validateNoAuth(session)
+        let account = await this.validationService.validateCredentials(dto.username, dto.password)
+        session.authId = randomUUID()
+        session.accountId = account.id
     }
 
-    async 
+    async logout(session: AuthSession) {
+        session.destroy(err => { 
+            if (err) {
+                console.log(err)
+            }
+        })
+    }
 }
